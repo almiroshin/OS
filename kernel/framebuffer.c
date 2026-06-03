@@ -1,0 +1,198 @@
+#include "framebuffer.h"
+#include <stddef.h>
+
+static uint32_t *fb;
+static uint32_t pitch_pixels;
+static uint32_t width;
+static uint32_t height;
+static uint32_t cursor_x;
+static uint32_t cursor_y;
+
+static const uint8_t font8x8_basic[96][8] = {
+    ['A'-32]={0x18,0x24,0x42,0x7e,0x42,0x42,0x42,0},
+    ['B'-32]={0x7c,0x42,0x42,0x7c,0x42,0x42,0x7c,0},
+    ['C'-32]={0x3c,0x42,0x40,0x40,0x40,0x42,0x3c,0},
+    ['D'-32]={0x78,0x44,0x42,0x42,0x42,0x44,0x78,0},
+    ['E'-32]={0x7e,0x40,0x40,0x7c,0x40,0x40,0x7e,0},
+    ['F'-32]={0x7e,0x40,0x40,0x7c,0x40,0x40,0x40,0},
+    ['G'-32]={0x3c,0x42,0x40,0x4e,0x42,0x42,0x3c,0},
+    ['H'-32]={0x42,0x42,0x42,0x7e,0x42,0x42,0x42,0},
+    ['I'-32]={0x7e,0x18,0x18,0x18,0x18,0x18,0x7e,0},
+    ['J'-32]={0x1e,0x04,0x04,0x04,0x44,0x44,0x38,0},
+    ['K'-32]={0x42,0x44,0x48,0x70,0x48,0x44,0x42,0},
+    ['L'-32]={0x40,0x40,0x40,0x40,0x40,0x40,0x7e,0},
+    ['M'-32]={0x42,0x66,0x5a,0x5a,0x42,0x42,0x42,0},
+    ['N'-32]={0x42,0x62,0x52,0x4a,0x46,0x42,0x42,0},
+    ['O'-32]={0x3c,0x42,0x42,0x42,0x42,0x42,0x3c,0},
+    ['P'-32]={0x7c,0x42,0x42,0x7c,0x40,0x40,0x40,0},
+    ['Q'-32]={0x3c,0x42,0x42,0x42,0x4a,0x44,0x3a,0},
+    ['R'-32]={0x7c,0x42,0x42,0x7c,0x48,0x44,0x42,0},
+    ['S'-32]={0x3c,0x42,0x40,0x3c,0x02,0x42,0x3c,0},
+    ['T'-32]={0x7e,0x18,0x18,0x18,0x18,0x18,0x18,0},
+    ['U'-32]={0x42,0x42,0x42,0x42,0x42,0x42,0x3c,0},
+    ['V'-32]={0x42,0x42,0x42,0x42,0x42,0x24,0x18,0},
+    ['W'-32]={0x42,0x42,0x42,0x5a,0x5a,0x66,0x42,0},
+    ['X'-32]={0x42,0x42,0x24,0x18,0x24,0x42,0x42,0},
+    ['Y'-32]={0x42,0x42,0x24,0x18,0x18,0x18,0x18,0},
+    ['Z'-32]={0x7e,0x02,0x04,0x18,0x20,0x40,0x7e,0},
+    ['0'-32]={0x3c,0x46,0x4a,0x52,0x62,0x42,0x3c,0},
+    ['1'-32]={0x18,0x38,0x18,0x18,0x18,0x18,0x7e,0},
+    ['2'-32]={0x3c,0x42,0x02,0x0c,0x30,0x40,0x7e,0},
+    ['3'-32]={0x3c,0x42,0x02,0x1c,0x02,0x42,0x3c,0},
+    ['4'-32]={0x08,0x18,0x28,0x48,0x7e,0x08,0x08,0},
+    ['5'-32]={0x7e,0x40,0x7c,0x02,0x02,0x42,0x3c,0},
+    ['6'-32]={0x1c,0x20,0x40,0x7c,0x42,0x42,0x3c,0},
+    ['7'-32]={0x7e,0x02,0x04,0x08,0x10,0x20,0x20,0},
+    ['8'-32]={0x3c,0x42,0x42,0x3c,0x42,0x42,0x3c,0},
+    ['9'-32]={0x3c,0x42,0x42,0x3e,0x02,0x04,0x38,0},
+    [' '-32]={0,0,0,0,0,0,0,0},
+    ['.'-32]={0,0,0,0,0,0x18,0x18,0},
+    [':'-32]={0,0x18,0x18,0,0,0x18,0x18,0},
+    ['-'-32]={0,0,0,0x7e,0,0,0,0},
+    ['+'-32]={0,0x18,0x18,0x7e,0x18,0x18,0,0},
+    ['*'-32]={0,0x42,0x24,0x18,0x24,0x42,0,0},
+    ['='-32]={0,0,0x7e,0,0x7e,0,0,0},
+    ['_'-32]={0,0,0,0,0,0,0x7e,0},
+    [','-32]={0,0,0,0,0,0x18,0x18,0x10},
+    ['?'-32]={0x3c,0x42,0x02,0x0c,0x18,0,0x18,0},
+    ['<'-32]={0x08,0x10,0x20,0x40,0x20,0x10,0x08,0},
+    ['>'-32]={0x40,0x20,0x10,0x08,0x10,0x20,0x40,0},
+    ['['-32]={0x3c,0x20,0x20,0x20,0x20,0x20,0x3c,0},
+    [']'-32]={0x3c,0x04,0x04,0x04,0x04,0x04,0x3c,0},
+    ['/'-32]={0x02,0x04,0x08,0x10,0x20,0x40,0,0},
+    ['\\'-32]={0x40,0x20,0x10,0x08,0x04,0x02,0,0},
+    ['!'-32]={0x18,0x18,0x18,0x18,0x18,0,0x18,0},
+};
+
+void framebuffer_init(const multiboot_info_t *mbi)
+{
+    fb = (uint32_t *)(uintptr_t) mbi->framebuffer_addr;
+    pitch_pixels = mbi->framebuffer_pitch / 4;
+    width = mbi->framebuffer_width;
+    height = mbi->framebuffer_height;
+}
+
+void framebuffer_clear(uint32_t color)
+{
+    for (uint32_t y = 0; y < height; y++) {
+        for (uint32_t x = 0; x < width; x++) {
+            fb[y * pitch_pixels + x] = color;
+        }
+    }
+}
+
+void framebuffer_put_pixel(uint32_t x, uint32_t y, uint32_t color)
+{
+    if (x < width && y < height) {
+        fb[y * pitch_pixels + x] = color;
+    }
+}
+
+uint32_t framebuffer_width(void)
+{
+    return width;
+}
+
+uint32_t framebuffer_height(void)
+{
+    return height;
+}
+
+void framebuffer_fill_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color)
+{
+    for (uint32_t yy = y; yy < y + h && yy < height; yy++) {
+        for (uint32_t xx = x; xx < x + w && xx < width; xx++) {
+            fb[yy * pitch_pixels + xx] = color;
+        }
+    }
+}
+
+void framebuffer_draw_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color)
+{
+    if (w == 0 || h == 0) {
+        return;
+    }
+    framebuffer_fill_rect(x, y, w, 1, color);
+    framebuffer_fill_rect(x, y + h - 1, w, 1, color);
+    framebuffer_fill_rect(x, y, 1, h, color);
+    framebuffer_fill_rect(x + w - 1, y, 1, h, color);
+}
+
+void framebuffer_draw_text_scaled(uint32_t x, uint32_t y, const char *s, uint32_t color, uint32_t scale)
+{
+    if (scale == 0) {
+        scale = 1;
+    }
+    while (*s) {
+        unsigned char c = (unsigned char)*s++;
+        if (c < 32 || c > 127) {
+            c = '.';
+        }
+        const uint8_t *glyph = font8x8_basic[c - 32];
+        for (uint32_t gy = 0; gy < 8; gy++) {
+            for (uint32_t gx = 0; gx < 8; gx++) {
+                if (glyph[gy] & (1 << (7 - gx))) {
+                    framebuffer_fill_rect(x + gx * scale, y + gy * scale, scale, scale, color);
+                }
+            }
+        }
+        x += 8 * scale;
+    }
+}
+
+void framebuffer_draw_text(uint32_t x, uint32_t y, const char *s, uint32_t color)
+{
+    framebuffer_draw_text_scaled(x, y, s, color, 1);
+}
+
+void framebuffer_blit_doom(const uint32_t *pixels, uint32_t w, uint32_t h)
+{
+    uint32_t copy_w = w < width ? w : width;
+    uint32_t copy_h = h < height ? h : height;
+    uint32_t offset_x = width > copy_w ? (width - copy_w) / 2 : 0;
+    uint32_t offset_y = height > copy_h ? (height - copy_h) / 2 : 0;
+
+    if (offset_y > 0) {
+        framebuffer_fill_rect(0, 0, width, offset_y, 0x00000000);
+        framebuffer_fill_rect(0, offset_y + copy_h, width, height - offset_y - copy_h, 0x00000000);
+    }
+    if (offset_x > 0) {
+        framebuffer_fill_rect(0, offset_y, offset_x, copy_h, 0x00000000);
+        framebuffer_fill_rect(offset_x + copy_w, offset_y, width - offset_x - copy_w, copy_h, 0x00000000);
+    }
+
+    for (uint32_t y = 0; y < copy_h; y++) {
+        for (uint32_t x = 0; x < copy_w; x++) {
+            fb[(offset_y + y) * pitch_pixels + offset_x + x] = pixels[y * w + x];
+        }
+    }
+}
+
+static void draw_char(char c)
+{
+    if (c == '\n') {
+        cursor_x = 0;
+        cursor_y += 10;
+        return;
+    }
+    unsigned char uc = (unsigned char)c;
+    if (uc < 32 || uc > 127) {
+        uc = '.';
+    }
+    const uint8_t *glyph = font8x8_basic[uc - 32];
+    for (uint32_t y = 0; y < 8; y++) {
+        for (uint32_t x = 0; x < 8; x++) {
+            if (glyph[y] & (1 << (7 - x))) {
+                framebuffer_put_pixel(cursor_x + x, cursor_y + y, 0x00ffffff);
+            }
+        }
+    }
+    cursor_x += 8;
+}
+
+void framebuffer_write_text(const char *s)
+{
+    while (*s) {
+        draw_char(*s++);
+    }
+}

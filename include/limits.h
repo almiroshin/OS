@@ -1,0 +1,11 @@
+#pragma once
+#define CHAR_BIT 8
+#define SHRT_MAX 32767
+#define SHRT_MIN (-32767 - 1)
+#define USHRT_MAX 65535
+#define INT_MAX 2147483647
+#define INT_MIN (-2147483647 - 1)
+#define UINT_MAX 4294967295U
+#define LONG_MAX 2147483647L
+#define LONG_MIN (-2147483647L - 1L)
+#define PATH_MAX 256
