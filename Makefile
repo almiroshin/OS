@@ -14,6 +14,7 @@ QEMU ?= $(firstword \
 	$(wildcard /opt/homebrew/bin/qemu-system-i386) \
 	$(wildcard /usr/local/bin/qemu-system-i386) \
 	qemu-system-i386)
+PYTHON ?= python3
 GRUB_MKRESCUE ?= $(firstword \
 	$(wildcard /opt/homebrew/bin/grub-mkrescue) \
 	$(wildcard /opt/homebrew/bin/i686-elf-grub-mkrescue) \
@@ -28,6 +29,7 @@ ISO_ROOT := $(BUILD)/iso
 KERNEL := $(BUILD)/kernel.elf
 ISO := $(BUILD)/TinyDoomOS.iso
 DISK := $(BUILD)/tinydoom.img
+FS_PATH ?= C:/
 WAD := assets/doom1.wad
 NATIVE_APP := $(BUILD)/user_apps/native_hello.app
 APP_BLOBS_C := $(BUILD)/app_blobs.c
@@ -99,7 +101,7 @@ OBJS := $(patsubst %.c,$(BUILD)/%.o,$(filter %.c,$(KERNEL_SRC) $(APP_SRC) $(DOOM
 	$(BUILD)/wad_blob.o \
 	$(BUILD)/app_blobs.o
 
-.PHONY: all clean run run-persistent disk-image check-tools fetch-wad
+.PHONY: all clean run run-persistent disk-image fs-format fs-ls fs-put fs-get fs-mkdir fs-rm install-sample-apps check-tools fetch-wad
 
 all: check-tools $(ISO)
 
@@ -161,6 +163,34 @@ run: check-tools $(ISO)
 disk-image:
 	@mkdir -p $(BUILD)
 	@if [ ! -f $(DISK) ]; then dd if=/dev/zero of=$(DISK) bs=1m count=8; fi
+
+fs-format: disk-image
+	$(PYTHON) tools/tinyfs.py format $(DISK) --force
+
+fs-ls: disk-image
+	$(PYTHON) tools/tinyfs.py ls $(DISK) "$(FS_PATH)"
+
+fs-put: disk-image
+	@test -n "$(SRC)" || { echo "Usage: make fs-put SRC=host-file DST=C:/APPS/APP.TAP"; exit 1; }
+	@test -n "$(DST)" || { echo "Usage: make fs-put SRC=host-file DST=C:/APPS/APP.TAP"; exit 1; }
+	$(PYTHON) tools/tinyfs.py put $(DISK) "$(SRC)" "$(DST)"
+
+fs-get: disk-image
+	@test -n "$(SRC)" || { echo "Usage: make fs-get SRC=C:/APPS/APP.TAP DST=host-file"; exit 1; }
+	@test -n "$(DST)" || { echo "Usage: make fs-get SRC=C:/APPS/APP.TAP DST=host-file"; exit 1; }
+	$(PYTHON) tools/tinyfs.py get $(DISK) "$(SRC)" "$(DST)"
+
+fs-mkdir: disk-image
+	@test -n "$(FS_PATH)" || { echo "Usage: make fs-mkdir FS_PATH=C:/TEMP/TOOLS"; exit 1; }
+	$(PYTHON) tools/tinyfs.py mkdir $(DISK) "$(FS_PATH)"
+
+fs-rm: disk-image
+	@test -n "$(FS_PATH)" || { echo "Usage: make fs-rm FS_PATH=C:/APPS/APP.TAP"; exit 1; }
+	$(PYTHON) tools/tinyfs.py rm $(DISK) "$(FS_PATH)"
+
+install-sample-apps: disk-image $(NATIVE_APP)
+	$(PYTHON) tools/tinyfs.py put $(DISK) user_apps/hello_disk.tap C:/APPS/HELLODSK.TAP
+	$(PYTHON) tools/tinyfs.py put $(DISK) $(NATIVE_APP) C:/APPS/NATIVE2.APP
 
 run-persistent: check-tools $(ISO) disk-image
 	$(QEMU) -m 256M -cdrom $(ISO) -drive file=$(DISK),format=raw,if=ide,media=disk -boot d -vga std -serial stdio -no-reboot

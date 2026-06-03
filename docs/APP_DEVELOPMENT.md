@@ -10,6 +10,10 @@ The C app model is still best for GUI experiments. The `.TAP` model is the
 first sandboxed exec path. The `.APP` model is the first native binary path,
 but it is not hardware-isolated yet.
 
+Disk-installed `.TAP` and `.APP` files can now be copied into
+`build/tinydoom.img` with `make fs-put`. On the next persistent boot, the GUI
+launcher scans `C:\APPS` and adds those files automatically.
+
 ## App Shape
 
 An app is a function that returns an `app_result_t`:
@@ -57,6 +61,18 @@ Add a script, add it to the boot node table, then add a descriptor in
 User-created files can persist on TinyFS, but boot-time app descriptors still
 point at the known built-in `C:\APPS` paths.
 
+For disk-installed `.TAP` files, no kernel edit is needed:
+
+```sh
+make fs-put SRC=user_apps/hello_disk.tap DST=C:/APPS/HELLODSK.TAP
+make fs-ls FS_PATH=C:/APPS
+make run-persistent
+```
+
+Inside TinyDoomOS, run it from `COMMAND` with `RUN HELLODSK.TAP`, or select it
+from the GUI launcher. Do not overwrite embedded boot app names such as
+`WELCOME.TAP`, `FILES.TAP`, `MEMORY.TAP`, or `NATIVE.APP`; use a new filename.
+
 Example script:
 
 ```text
@@ -83,6 +99,15 @@ Supported commands:
 The current native app example is `user_apps/native_hello.S`. It is assembled
 as an i386 object, converted to a raw binary with `objcopy`, embedded with
 `xxd`, and exposed under `C:\APPS\NATIVE.APP`.
+
+The same raw `.APP` image can also be copied to the TinyFS disk image under a
+different filename:
+
+```sh
+make
+make fs-put SRC=build/user_apps/native_hello.app DST=C:/APPS/NATIVE2.APP
+make run-persistent
+```
 
 The binary starts with:
 

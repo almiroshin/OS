@@ -107,6 +107,21 @@ make run-persistent
 On first boot TinyDoomOS formats it as TinyFS; later boots mount it and keep
 files created from `COMMAND`, such as `C:\TEMP\NOTE.TXT`.
 
+You can also copy apps into the disk image from macOS while QEMU is not running:
+
+```sh
+make install-sample-apps
+make fs-ls FS_PATH=C:/APPS
+make fs-put SRC=user_apps/hello_disk.tap DST=C:/APPS/MYAPP.TAP
+make fs-get SRC=C:/APPS/MYAPP.TAP DST=build/MYAPP.TAP
+```
+
+Files copied to `C:\APPS` with `.TAP` or `.APP` extensions appear in the GUI
+launcher on the next boot and can also be run from `COMMAND`, for example
+`RUN HELLODSK.TAP`. Embedded boot apps such as `WELCOME.TAP` and `NATIVE.APP`
+are still part of the kernel image, so use different names for disk-installed
+apps.
+
 Or boot `build/TinyDoomOS.iso` in UTM, VirtualBox, VMware, or another BIOS x86
 VM. For persistence, attach `build/tinydoom.img` as a raw IDE disk.
 
@@ -142,6 +157,7 @@ There are now three app models:
 - built-in C modules linked into the kernel and registered in `apps/app_table.c`
 - `.TAP` executables stored under `C:\APPS`
 - raw i386 `.APP` executables built from `user_apps/` and exposed under `C:\APPS`
+- disk-installed `.TAP` and `.APP` files copied into `build/tinydoom.img`
 
 Start with:
 

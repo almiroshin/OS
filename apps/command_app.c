@@ -47,7 +47,7 @@ static void command_draw(command_state_t *state)
     char prompt[CMD_COLS + 8];
     app_window_t win = app_draw_window(640, 430, "COMMAND");
 
-    framebuffer_draw_text(win.x + 18, win.y + 42, "TINYDOS COMMAND 0.2", 0x00fff08a);
+    framebuffer_draw_text(win.x + 18, win.y + 42, "TINYDOS COMMAND 0.3", 0x00fff08a);
     framebuffer_draw_text(win.x + 18, win.y + 58, "TYPE HELP FOR COMMANDS", 0x00b9c8d0);
 
     for (int i = 0; i < state->count; i++) {

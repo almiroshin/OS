@@ -48,6 +48,7 @@ flowchart TD
     Apps --> About["About App"]
     Loader --> TapApps["C:\\APPS\\*.TAP"]
     Loader --> NativeApps["C:\\APPS\\*.APP"]
+    TinyFS --> HostTool["tools/tinyfs.py"]
     TapApps --> Syscalls
     NativeApps --> Syscalls
     Syscalls --> FS
@@ -119,6 +120,10 @@ currently assembles `user_apps/native_hello.S`, converts it to a binary blob,
 and exposes it as `C:\APPS\NATIVE.APP`. This is a native loader MVP, not a
 protected user-mode process yet.
 
+The GUI launcher combines built-in apps, embedded boot executables, and dynamic
+disk-installed apps found by scanning `C:\APPS` for non-embedded `.TAP` and
+`.APP` files.
+
 The future app model should evolve in stages:
 
 1. Built-in C apps linked with the kernel.
@@ -186,6 +191,11 @@ reboot. With `make run-persistent`, QEMU attaches `build/tinydoom.img` as an IDE
 disk. On first boot TinyDoomOS formats it; later boots mount it and load saved
 files.
 
+`tools/tinyfs.py` is the host-side image tool. The Makefile wraps it with
+`fs-ls`, `fs-put`, `fs-get`, `fs-mkdir`, `fs-rm`, and `install-sample-apps`, so
+new `.TAP` and `.APP` files can be copied into `build/tinydoom.img` without
+rebuilding the kernel.
+
 Current files include:
 
 - `C:\README.TXT`
@@ -196,6 +206,7 @@ Current files include:
 - `C:\APPS\NATIVE.APP`
 - `C:\DOOM\DOOM1.WAD`
 - writable files created from `COMMAND`, for example `C:\TEMP\NOTE.TXT`
+- disk-installed apps such as `C:\APPS\HELLODSK.TAP`
 
 TinyFS is deliberately small: sector 0 stores a header, the next metadata
 sectors store fixed-size file entries, and file data starts at LBA 16. It is not
@@ -253,6 +264,8 @@ Milestone 4: Loadable Apps
 - process descriptors and private heaps
 - ATA PIO disk driver
 - TinyFS persistent disk image
+- host-side TinyFS image tool
+- dynamic `C:\APPS` launcher scan
 - next: ELF-like app loading
 
 Milestone 5: More OS Features

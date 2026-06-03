@@ -13,6 +13,11 @@
 #define CONSOLE_LINES 18
 #define CONSOLE_COLS 72
 #define NATIVE_APP_MAGIC 0x31505041u
+#define EXEC_DYNAMIC_MAX 24
+#define EXEC_ID_LEN 32
+#define EXEC_TITLE_LEN 32
+#define EXEC_SUMMARY_LEN 32
+#define EXEC_PATH_LEN 64
 
 typedef struct {
     char title[32];
@@ -46,19 +51,119 @@ static const app_descriptor_t exec_apps[] = {
     { "native-app", "NATIVE.APP", "RAW I386 APP IMAGE", 0, "C:\\APPS\\NATIVE.APP" },
 };
 
+static app_descriptor_t dynamic_exec_apps[EXEC_DYNAMIC_MAX];
+static char dynamic_ids[EXEC_DYNAMIC_MAX][EXEC_ID_LEN];
+static char dynamic_titles[EXEC_DYNAMIC_MAX][EXEC_TITLE_LEN];
+static char dynamic_summaries[EXEC_DYNAMIC_MAX][EXEC_SUMMARY_LEN];
+static char dynamic_paths[EXEC_DYNAMIC_MAX][EXEC_PATH_LEN];
+static int dynamic_exec_count;
 static process_t *native_current_process;
 
-int exec_app_count(void)
+static int exec_static_count(void)
 {
     return sizeof(exec_apps) / sizeof(exec_apps[0]);
 }
 
-const app_descriptor_t *exec_app_get(int index)
+static const char *exec_name_part(const char *path)
 {
-    if (index < 0 || index >= exec_app_count()) {
+    const char *name = path;
+
+    while (*path) {
+        if (*path == '\\' || *path == '/') {
+            name = path + 1;
+        }
+        path++;
+    }
+    return name;
+}
+
+static int ends_with(const char *text, const char *suffix)
+{
+    size_t text_len = strlen(text);
+    size_t suffix_len = strlen(suffix);
+
+    if (suffix_len > text_len) {
         return 0;
     }
-    return &exec_apps[index];
+    return strcmp(text + text_len - suffix_len, suffix) == 0;
+}
+
+static int is_static_exec_path(const char *path)
+{
+    for (int i = 0; i < exec_static_count(); i++) {
+        if (strcmp(exec_apps[i].exec_path, path) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+static void exec_dynamic_callback(const fs_node_t *node, void *ctx)
+{
+    int index;
+    const char *name;
+    const char *kind;
+
+    (void)ctx;
+    if (!node || node->type != FS_NODE_FILE || dynamic_exec_count >= EXEC_DYNAMIC_MAX) {
+        return;
+    }
+    if (is_static_exec_path(node->path)) {
+        return;
+    }
+    if (!ends_with(node->path, ".TAP") && !ends_with(node->path, ".APP")) {
+        return;
+    }
+
+    index = dynamic_exec_count++;
+    name = exec_name_part(node->path);
+    kind = ends_with(node->path, ".APP") ? "DISK I386 APP" : "DISK TAP APP";
+
+    snprintf(dynamic_ids[index], sizeof(dynamic_ids[index]), "disk-%u", (unsigned int)index);
+    strncpy(dynamic_titles[index], name, sizeof(dynamic_titles[index]));
+    dynamic_titles[index][sizeof(dynamic_titles[index]) - 1] = 0;
+    strncpy(dynamic_summaries[index], kind, sizeof(dynamic_summaries[index]));
+    dynamic_summaries[index][sizeof(dynamic_summaries[index]) - 1] = 0;
+    strncpy(dynamic_paths[index], node->path, sizeof(dynamic_paths[index]));
+    dynamic_paths[index][sizeof(dynamic_paths[index]) - 1] = 0;
+
+    dynamic_exec_apps[index].id = dynamic_ids[index];
+    dynamic_exec_apps[index].title = dynamic_titles[index];
+    dynamic_exec_apps[index].summary = dynamic_summaries[index];
+    dynamic_exec_apps[index].entry = 0;
+    dynamic_exec_apps[index].exec_path = dynamic_paths[index];
+}
+
+static void exec_refresh_dynamic_apps(void)
+{
+    memset(dynamic_exec_apps, 0, sizeof(dynamic_exec_apps));
+    memset(dynamic_ids, 0, sizeof(dynamic_ids));
+    memset(dynamic_titles, 0, sizeof(dynamic_titles));
+    memset(dynamic_summaries, 0, sizeof(dynamic_summaries));
+    memset(dynamic_paths, 0, sizeof(dynamic_paths));
+    dynamic_exec_count = 0;
+    fs_list("C:\\APPS", exec_dynamic_callback, 0);
+}
+
+int exec_app_count(void)
+{
+    exec_refresh_dynamic_apps();
+    return exec_static_count() + dynamic_exec_count;
+}
+
+const app_descriptor_t *exec_app_get(int index)
+{
+    int total;
+
+    exec_refresh_dynamic_apps();
+    total = exec_static_count() + dynamic_exec_count;
+    if (index < 0 || index >= total) {
+        return 0;
+    }
+    if (index < exec_static_count()) {
+        return &exec_apps[index];
+    }
+    return &dynamic_exec_apps[index - exec_static_count()];
 }
 
 static void console_draw(exec_console_t *console)
