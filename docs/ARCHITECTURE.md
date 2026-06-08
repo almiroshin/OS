@@ -42,6 +42,7 @@ flowchart TD
     Suite --> Calc["Calc"]
     Suite --> Clock["Clock"]
     Suite --> Paint["Paint"]
+    Suite --> FileMan["Files"]
     Suite --> SysInfo["Sys Info"]
     Apps --> Hello["Hello App"]
     Apps --> Doom["Doom App"]
@@ -143,6 +144,7 @@ Target behavior:
 - top bar
 - app launcher
 - launcher list scrolling
+- file manager for `C:\`
 - modal windows
 - keyboard and mouse navigation
 - return to shell after app exit
@@ -208,6 +210,10 @@ Current files include:
 - writable files created from `COMMAND`, for example `C:\TEMP\NOTE.TXT`
 - disk-installed apps such as `C:\APPS\HELLODSK.TAP`
 
+The built-in `FILES` app is the first GUI file manager. It uses the same `fs_*`
+API as `COMMAND`: directory listing, folder creation, file deletion, text
+viewing, and `exec_run_app` for `.TAP` and `.APP` files.
+
 TinyFS is deliberately small: sector 0 stores a header, the next metadata
 sectors store fixed-size file entries, and file data starts at LBA 16. It is not
 FAT-compatible yet; it is a project-native format for learning and fast
@@ -235,6 +241,7 @@ Milestone 1: Graphical Shell
 - Hello sample app
 - base app suite
 - About app
+- GUI File Manager
 - Doom app
 - keyboard app launcher
 - serial diagnostics

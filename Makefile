@@ -77,6 +77,7 @@ APP_SRC := \
 	apps/calc_app.c \
 	apps/clock_app.c \
 	apps/paint_app.c \
+	apps/fileman_app.c \
 	apps/sysinfo_app.c \
 	apps/doom_app.c \
 	apps/about_app.c \

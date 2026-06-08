@@ -12,6 +12,8 @@
 #define CMD_LINES 18
 #define CMD_COLS 74
 
+app_result_t app_fileman_main(void);
+
 typedef struct {
     char lines[CMD_LINES][CMD_COLS];
     int count;
@@ -261,7 +263,7 @@ static void command_execute(command_state_t *state)
     } else if (strcmp(cmd, "HELP") == 0) {
         command_add(state, "DIR [PATH]   TYPE FILE   WRITE FILE TEXT");
         command_add(state, "APPEND FILE TEXT   DEL FILE   MKDIR PATH");
-        command_add(state, "RUN FILE.APP/TAP   MEM   SYNC   CLS   VER   EXIT");
+        command_add(state, "RUN FILE.APP/TAP   FILES   MEM   SYNC   CLS   VER   EXIT");
     } else if (strcmp(cmd, "VER") == 0) {
         command_add(state, "TINYDOOMOS 0.3 TINYFS EXEC BUILD");
         command_add(state, fs_is_persistent() ? "TINYFS DISK ONLINE" : "TINYFS VOLATILE MODE");
@@ -279,6 +281,9 @@ static void command_execute(command_state_t *state)
         command_add(state, fs_mkdir(args) == 0 ? "DIRECTORY READY" : "MKDIR FAILED");
     } else if (strcmp(cmd, "RUN") == 0) {
         command_run(state, args);
+    } else if (strcmp(cmd, "FILES") == 0) {
+        app_fileman_main();
+        command_add(state, "FILE MANAGER RETURNED");
     } else if (strcmp(cmd, "MEM") == 0) {
         command_mem(state);
     } else if (strcmp(cmd, "SYNC") == 0) {

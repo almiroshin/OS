@@ -8,6 +8,7 @@ app_result_t app_notepad_main(void);
 app_result_t app_calc_main(void);
 app_result_t app_clock_main(void);
 app_result_t app_paint_main(void);
+app_result_t app_fileman_main(void);
 app_result_t app_sysinfo_main(void);
 
 const app_descriptor_t builtin_apps[] = {
@@ -16,6 +17,7 @@ const app_descriptor_t builtin_apps[] = {
     { "calc", "CALC", "INTEGER CALCULATOR", app_calc_main, 0 },
     { "clock", "CLOCK", "UPTIME CLOCK", app_clock_main, 0 },
     { "paint", "PAINT", "KEYBOARD DRAWING", app_paint_main, 0 },
+    { "files", "FILES", "GUI FILE MANAGER", app_fileman_main, 0 },
     { "sysinfo", "SYS INFO", "SYSTEM DETAILS", app_sysinfo_main, 0 },
     { "doom", "DOOM", "EMBEDDED SHAREWARE", app_doom_main, 0 },
     { "about", "ABOUT OS", "ARCHITECTURE INFO", app_about_main, 0 },

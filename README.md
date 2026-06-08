@@ -30,11 +30,12 @@ graphical environment for experiments.
 - `.TAP` script executable loader
 - raw i386 `.APP` executable loader MVP
 - graphical desktop launcher
+- GUI file manager for `C:\`
 - built-in app registry
 - mixed app launcher: built-in apps plus `C:\APPS` executables
 - basic built-in app suite
 - sample `HELLO` app
-- `COMMAND`, `NOTEPAD`, `CALC`, `CLOCK`, `PAINT`, and `SYS INFO`
+- `COMMAND`, `NOTEPAD`, `CALC`, `CLOCK`, `PAINT`, `FILES`, and `SYS INFO`
 - `ABOUT OS` app
 - Doom shareware app through `doomgeneric`
 - Doom WAD exposed as `C:\DOOM\DOOM1.WAD`
@@ -133,11 +134,12 @@ Shell controls:
 
 Built-in apps:
 
-- `COMMAND`: DOS-style shell. Supports `DIR`, `TYPE`, `WRITE`, `APPEND`, `DEL`, `MKDIR`, `RUN`, `MEM`, `SYNC`, `CLS`, `VER`, and `EXIT`.
+- `COMMAND`: DOS-style shell. Supports `DIR`, `TYPE`, `WRITE`, `APPEND`, `DEL`, `MKDIR`, `RUN`, `FILES`, `MEM`, `SYNC`, `CLS`, `VER`, and `EXIT`.
 - `NOTEPAD`: in-memory text editor. Type text, Backspace deletes, Enter adds a line, Esc returns.
 - `CALC`: integer calculator. Use `0-9`, `A/S/M/D` for add/subtract/multiply/divide, Enter equals, `C` clears, Esc returns.
 - `CLOCK`: live uptime clock.
 - `PAINT`: keyboard drawing grid. Arrows move, Space draws, Backspace erases, `1-4` change color, `C` clears.
+- `FILES`: GUI file manager. Browse `C:\`, open folders, view `.TXT/.TAP`, run `.TAP/.APP`, create folders, and delete files.
 - `SYS INFO`: framebuffer, app count, uptime, WAD size, and driver summary.
 
 Loadable `C:\APPS` apps:

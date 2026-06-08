@@ -158,6 +158,7 @@ The current built-in app suite is also useful as examples:
 - `apps/calc_app.c`: keyboard-driven state machine
 - `apps/clock_app.c`: timer-based redraw loop
 - `apps/paint_app.c`: simple canvas state
+- `apps/fileman_app.c`: filesystem browser, text viewer, and app launcher
 - `apps/sysinfo_app.c`: reading OS/kernel-facing information
 
 ## Minimal Interactive App
