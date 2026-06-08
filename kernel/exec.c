@@ -7,12 +7,12 @@
 #include "process.h"
 #include "syscall.h"
 #include "timer.h"
+#include "tinyos_app.h"
 #include <stdio.h>
 #include <string.h>
 
 #define CONSOLE_LINES 18
 #define CONSOLE_COLS 72
-#define NATIVE_APP_MAGIC 0x31505041u
 #define EXEC_DYNAMIC_MAX 24
 #define EXEC_ID_LEN 32
 #define EXEC_TITLE_LEN 32
@@ -25,24 +25,6 @@ typedef struct {
     int count;
     app_window_t win;
 } exec_console_t;
-
-typedef struct {
-    uint32_t magic;
-    uint32_t entry_offset;
-    uint32_t image_size;
-    uint32_t flags;
-} native_app_header_t;
-
-typedef struct {
-    void (*write)(const char *text);
-    void (*mem_info)(void);
-    void (*proc_info)(void);
-    void (*sleep)(uint32_t ms);
-    int (*list_dir)(const char *path);
-    void (*exit)(int code);
-} native_app_api_t;
-
-typedef int (*native_app_entry_t)(native_app_api_t *api);
 
 static const app_descriptor_t exec_apps[] = {
     { "tap-welcome", "WELCOME.TAP", "LOADED FROM C:\\APPS", 0, "C:\\APPS\\WELCOME.TAP" },
@@ -397,24 +379,24 @@ static int exec_interpret(process_t *process)
 
 static int image_is_native_app(const unsigned char *image, size_t image_size)
 {
-    const native_app_header_t *header;
+    const tinyos_app_header_t *header;
 
-    if (!image || image_size < sizeof(native_app_header_t)) {
+    if (!image || image_size < sizeof(tinyos_app_header_t)) {
         return 0;
     }
 
-    header = (const native_app_header_t *)image;
-    return header->magic == NATIVE_APP_MAGIC
-        && header->entry_offset >= sizeof(native_app_header_t)
+    header = (const tinyos_app_header_t *)image;
+    return header->magic == TINYOS_APP_MAGIC
+        && header->entry_offset >= sizeof(tinyos_app_header_t)
         && header->entry_offset < image_size
         && header->image_size <= image_size;
 }
 
 static int exec_native(process_t *process)
 {
-    const native_app_header_t *header = (const native_app_header_t *)process->image;
-    native_app_entry_t entry;
-    native_app_api_t api;
+    const tinyos_app_header_t *header = (const tinyos_app_header_t *)process->image;
+    tinyos_app_entry_t entry;
+    tinyos_api_t api;
     process_t *previous;
 
     if (!image_is_native_app(process->image, process->image_size)) {
@@ -434,7 +416,7 @@ static int exec_native(process_t *process)
     previous = native_current_process;
     native_current_process = process;
 
-    entry = (native_app_entry_t)(uintptr_t)(process->image + header->entry_offset);
+    entry = (tinyos_app_entry_t)(uintptr_t)(process->image + header->entry_offset);
     process_write(process, "NATIVE APP HEADER OK");
     entry(&api);
 

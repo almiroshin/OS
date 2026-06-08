@@ -32,6 +32,7 @@ DISK := $(BUILD)/tinydoom.img
 FS_PATH ?= C:/
 WAD := assets/doom1.wad
 NATIVE_APP := $(BUILD)/user_apps/native_hello.app
+C_NATIVE_APP := $(BUILD)/user_apps/native_c_hello.app
 APP_BLOBS_C := $(BUILD)/app_blobs.c
 
 COMMON_CFLAGS := -std=gnu99 -ffreestanding -fno-builtin -fno-stack-protector \
@@ -39,7 +40,14 @@ COMMON_CFLAGS := -std=gnu99 -ffreestanding -fno-builtin -fno-stack-protector \
 	-DNORMALUNIX -DDOOMGENERIC_RESX=640 -DDOOMGENERIC_RESY=400 \
 	-Iinclude -Ikernel -Iapps -Ithird_party/doomgeneric
 
+APP_CFLAGS := -std=gnu99 -ffreestanding -fno-builtin -fno-stack-protector \
+	-fPIE -m32 -march=i686 -O2 -Wall -Wextra \
+	-fno-asynchronous-unwind-tables -fno-zero-initialized-in-bss \
+	-mno-sse -mno-mmx -msoft-float -Iinclude -Iuser_apps
+
 LDFLAGS := -ffreestanding -nostdlib -m32 -T boot/linker.ld -Wl,--gc-sections
+APP_LDFLAGS := -ffreestanding -nostdlib -m32 -Wl,-T,user_apps/app.ld \
+	-Wl,--gc-sections -Wl,--build-id=none
 
 KERNEL_SRC := \
 	kernel/boot.S \
@@ -102,9 +110,9 @@ OBJS := $(patsubst %.c,$(BUILD)/%.o,$(filter %.c,$(KERNEL_SRC) $(APP_SRC) $(DOOM
 	$(BUILD)/wad_blob.o \
 	$(BUILD)/app_blobs.o
 
-.PHONY: all clean run run-persistent disk-image fs-format fs-ls fs-put fs-get fs-mkdir fs-rm install-sample-apps check-tools fetch-wad
+.PHONY: all clean run run-persistent disk-image fs-format fs-ls fs-put fs-get fs-mkdir fs-rm install-sample-apps user-apps check-tools fetch-wad
 
-all: check-tools $(ISO)
+all: check-tools $(ISO) user-apps
 
 check-tools:
 	@command -v $(CC) >/dev/null || { echo "Missing $(CC). Install i686-elf-gcc."; exit 1; }
@@ -129,6 +137,22 @@ $(BUILD)/user_apps/%.o: user_apps/%.S
 
 $(NATIVE_APP): $(BUILD)/user_apps/native_hello.o
 	$(OBJCOPY) -j .text -O binary $< $@
+
+$(BUILD)/user_apps/tinyos_app_start.o: user_apps/tinyos_app_start.S include/tinyos_app.h
+	@mkdir -p $(dir $@)
+	$(CC) $(APP_CFLAGS) -c $< -o $@
+
+$(BUILD)/user_apps/native_c_hello.o: user_apps/native_c_hello.c include/tinyos_app.h
+	@mkdir -p $(dir $@)
+	$(CC) $(APP_CFLAGS) -c $< -o $@
+
+$(BUILD)/user_apps/native_c_hello.elf: $(BUILD)/user_apps/tinyos_app_start.o $(BUILD)/user_apps/native_c_hello.o user_apps/app.ld
+	$(CC) $(APP_LDFLAGS) $< $(BUILD)/user_apps/native_c_hello.o -lgcc -o $@
+
+$(C_NATIVE_APP): $(BUILD)/user_apps/native_c_hello.elf
+	$(OBJCOPY) -O binary $< $@
+
+user-apps: $(NATIVE_APP) $(C_NATIVE_APP)
 
 $(APP_BLOBS_C): $(NATIVE_APP)
 	@mkdir -p $(dir $@)
@@ -189,9 +213,10 @@ fs-rm: disk-image
 	@test -n "$(FS_PATH)" || { echo "Usage: make fs-rm FS_PATH=C:/APPS/APP.TAP"; exit 1; }
 	$(PYTHON) tools/tinyfs.py rm $(DISK) "$(FS_PATH)"
 
-install-sample-apps: disk-image $(NATIVE_APP)
+install-sample-apps: disk-image $(NATIVE_APP) $(C_NATIVE_APP)
 	$(PYTHON) tools/tinyfs.py put $(DISK) user_apps/hello_disk.tap C:/APPS/HELLODSK.TAP
 	$(PYTHON) tools/tinyfs.py put $(DISK) $(NATIVE_APP) C:/APPS/NATIVE2.APP
+	$(PYTHON) tools/tinyfs.py put $(DISK) $(C_NATIVE_APP) C:/APPS/CHELLO.APP
 
 run-persistent: check-tools $(ISO) disk-image
 	$(QEMU) -m 256M -cdrom $(ISO) -drive file=$(DISK),format=raw,if=ide,media=disk -boot d -vga std -serial stdio -no-reboot

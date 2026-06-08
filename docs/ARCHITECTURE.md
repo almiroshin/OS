@@ -35,6 +35,7 @@ flowchart TD
     Kernel --> Proc["Process Table"]
     Proc --> Syscalls["Syscall Dispatcher"]
     Kernel --> GUI["GUI Shell"]
+    Kernel --> SDK["Tiny C .APP SDK"]
     GUI --> Apps["Built-in App Registry"]
     GUI --> Loader["Exec Loader"]
     Apps --> Suite["Base Apps"]
@@ -49,6 +50,7 @@ flowchart TD
     Apps --> About["About App"]
     Loader --> TapApps["C:\\APPS\\*.TAP"]
     Loader --> NativeApps["C:\\APPS\\*.APP"]
+    SDK --> NativeApps
     TinyFS --> HostTool["tools/tinyfs.py"]
     TapApps --> Syscalls
     NativeApps --> Syscalls
@@ -117,9 +119,10 @@ The loader creates a process descriptor, gives the program a private sandbox
 heap, and executes commands through the syscall dispatcher.
 
 The third track is `.APP`, a raw i386 image with an `APP1` header. The build
-currently assembles `user_apps/native_hello.S`, converts it to a binary blob,
-and exposes it as `C:\APPS\NATIVE.APP`. This is a native loader MVP, not a
-protected user-mode process yet.
+can assemble `user_apps/native_hello.S` or compile C apps through
+`include/tinyos_app.h`, `user_apps/tinyos_app_start.S`, and `user_apps/app.ld`.
+The C sample is installed as `C:\APPS\CHELLO.APP`. This is a native loader MVP,
+not a protected user-mode process yet.
 
 The GUI launcher combines built-in apps, embedded boot executables, and dynamic
 disk-installed apps found by scanning `C:\APPS` for non-embedded `.TAP` and
@@ -130,8 +133,9 @@ The future app model should evolve in stages:
 1. Built-in C apps linked with the kernel.
 2. `C:\APPS` `.TAP` apps with syscalls and sandbox heaps.
 3. `C:\APPS` raw i386 `.APP` apps with a fixed API table.
-4. Disk-loaded ELF-like apps.
-5. Native process-like apps with paging and user mode.
+4. C-built `.APP` apps through the tiny SDK.
+5. Disk-loaded ELF-like apps.
+6. Native process-like apps with paging and user mode.
 
 ## GUI Shell
 
@@ -209,6 +213,7 @@ Current files include:
 - `C:\DOOM\DOOM1.WAD`
 - writable files created from `COMMAND`, for example `C:\TEMP\NOTE.TXT`
 - disk-installed apps such as `C:\APPS\HELLODSK.TAP`
+- C SDK sample app `C:\APPS\CHELLO.APP`
 
 The built-in `FILES` app is the first GUI file manager. It uses the same `fs_*`
 API as `COMMAND`: directory listing, folder creation, file deletion, text
@@ -232,6 +237,11 @@ The `.APP` format starts with:
 
 The native entry receives a tiny API table for write, memory info, process info,
 sleep, directory listing, and exit.
+
+`include/tinyos_app.h` is the public ABI header for C-built native apps. The
+sample app `user_apps/native_c_hello.c` proves that an app can be compiled
+outside the kernel, installed into TinyFS, launched from `COMMAND`, call the API
+table, and return to the OS.
 
 ## Roadmap
 
@@ -261,6 +271,9 @@ Milestone 3: Developer SDK
 - app API header
 - app lifecycle docs
 - build rules for adding built-in apps
+- native C `.APP` ABI header
+- startup stub and linker script for C `.APP` programs
+- sample `CHELLO.APP` disk-installed app
 
 Milestone 4: Loadable Apps
 

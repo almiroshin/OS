@@ -128,11 +128,55 @@ typedef struct {
     void (*sleep)(uint32_t ms);
     int (*list_dir)(const char *path);
     void (*exit)(int code);
-} native_app_api_t;
+} tinyos_api_t;
 ```
 
 This proves the native loader path, but it still runs in the kernel address
 space. Paging and ring 3 are the next step for real native-process isolation.
+
+## Add A Native C `.APP` App
+
+The current SDK files are:
+
+- `include/tinyos_app.h`: public `.APP` ABI and API table
+- `user_apps/tinyos_app_start.S`: raw `.APP` header and startup stub
+- `user_apps/app.ld`: linker script for raw position-independent app images
+- `user_apps/native_c_hello.c`: sample C app
+
+Minimal app:
+
+```c
+#include "tinyos_app.h"
+
+int tinyos_main(tinyos_api_t *api)
+{
+    api->write("HELLO FROM C .APP");
+    api->proc_info();
+    api->mem_info();
+    api->list_dir("C:\\APPS");
+    return 0;
+}
+```
+
+Build and install the sample app:
+
+```sh
+make user-apps
+make install-sample-apps
+make fs-ls FS_PATH=C:/APPS
+make run-persistent
+```
+
+Inside TinyDoomOS, run:
+
+```text
+RUN CHELLO.APP
+```
+
+The build uses freestanding i386 PIE code and then strips the linked ELF into a
+raw `.APP` binary. The app must call only the `tinyos_api_t` table for OS
+services. There is no app-side libc ABI yet, and native `.APP` code still runs
+without hardware memory protection.
 
 ## APIs Available Today
 
@@ -197,8 +241,9 @@ The intended progression is:
 1. Built-in C apps linked with the kernel.
 2. `C:\APPS` `.TAP` apps with syscalls and sandbox heaps.
 3. `C:\APPS` raw i386 `.APP` apps with a fixed API table.
-4. Disk-loaded ELF-like apps.
-5. Process-like native apps with paging, syscalls, and separate heaps.
+4. C-built `.APP` apps through the tiny SDK.
+5. Disk-loaded ELF-like apps.
+6. Process-like native apps with paging, syscalls, and separate heaps.
 
 Stage 1 is enough for small experiments: demos, simple games, calculators,
 text viewers, diagnostics, and GUI toolkit tests.

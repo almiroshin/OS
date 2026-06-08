@@ -29,6 +29,7 @@ graphical environment for experiments.
 - syscall dispatcher for sandboxed apps
 - `.TAP` script executable loader
 - raw i386 `.APP` executable loader MVP
+- tiny C SDK for disk-installed `.APP` programs
 - graphical desktop launcher
 - GUI file manager for `C:\`
 - built-in app registry
@@ -111,6 +112,7 @@ files created from `COMMAND`, such as `C:\TEMP\NOTE.TXT`.
 You can also copy apps into the disk image from macOS while QEMU is not running:
 
 ```sh
+make user-apps
 make install-sample-apps
 make fs-ls FS_PATH=C:/APPS
 make fs-put SRC=user_apps/hello_disk.tap DST=C:/APPS/MYAPP.TAP
@@ -148,21 +150,24 @@ Loadable `C:\APPS` apps:
 - `FILES.TAP`: lists directories from the DOS-like filesystem.
 - `MEMORY.TAP`: calls memory and process syscalls from the sandbox.
 - `NATIVE.APP`: raw i386 executable image with an `APP1` header and process API table.
+- `CHELLO.APP`: sample disk-installed native app built from C with the tiny SDK.
 
 Doom uses the usual keyboard controls. Press `F10` inside Doom to return to the
 TinyDoomOS shell. This version has no sound driver yet.
 
 ## Writing Apps
 
-There are now three app models:
+There are now three app models, with disk installation for loadable files:
 
 - built-in C modules linked into the kernel and registered in `apps/app_table.c`
 - `.TAP` executables stored under `C:\APPS`
-- raw i386 `.APP` executables built from `user_apps/` and exposed under `C:\APPS`
+- raw i386 `.APP` executables built from assembly or C under `user_apps/`
 - disk-installed `.TAP` and `.APP` files copied into `build/tinydoom.img`
 
 Start with:
 
+- `include/tinyos_app.h`
+- `user_apps/native_c_hello.c`
 - `apps/hello_app.c`
 - `apps/notepad_app.c`
 - `apps/app_ui.h`
