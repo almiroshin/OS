@@ -29,7 +29,7 @@ graphical environment for experiments.
 - syscall dispatcher for sandboxed apps
 - `.TAP` script executable loader
 - raw i386 `.APP` executable loader MVP
-- tiny C SDK for disk-installed `.APP` programs
+- tiny C SDK and GUI API for disk-installed `.APP` programs
 - graphical desktop launcher
 - GUI file manager for `C:\`
 - built-in app registry
@@ -151,6 +151,7 @@ Loadable `C:\APPS` apps:
 - `MEMORY.TAP`: calls memory and process syscalls from the sandbox.
 - `NATIVE.APP`: raw i386 executable image with an `APP1` header and process API table.
 - `CHELLO.APP`: sample disk-installed native app built from C with the tiny SDK.
+- `CGUI.APP`: sample disk-installed C app using the native GUI API.
 
 Doom uses the usual keyboard controls. Press `F10` inside Doom to return to the
 TinyDoomOS shell. This version has no sound driver yet.
@@ -168,6 +169,7 @@ Start with:
 
 - `include/tinyos_app.h`
 - `user_apps/native_c_hello.c`
+- `user_apps/native_gui_demo.c`
 - `apps/hello_app.c`
 - `apps/notepad_app.c`
 - `apps/app_ui.h`

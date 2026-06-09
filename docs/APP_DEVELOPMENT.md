@@ -142,6 +142,7 @@ The current SDK files are:
 - `user_apps/tinyos_app_start.S`: raw `.APP` header and startup stub
 - `user_apps/app.ld`: linker script for raw position-independent app images
 - `user_apps/native_c_hello.c`: sample C app
+- `user_apps/native_gui_demo.c`: sample C GUI app
 
 Minimal app:
 
@@ -177,6 +178,47 @@ The build uses freestanding i386 PIE code and then strips the linked ELF into a
 raw `.APP` binary. The app must call only the `tinyos_api_t` table for OS
 services. There is no app-side libc ABI yet, and native `.APP` code still runs
 without hardware memory protection.
+
+## Native C GUI API
+
+`tinyos_api_t` also exposes the first stable drawing and input calls for
+disk-loaded C apps:
+
+```c
+typedef struct {
+    uint32_t x;
+    uint32_t y;
+    uint32_t w;
+    uint32_t h;
+} tinyos_window_t;
+
+tinyos_window_t (*draw_window)(uint32_t w, uint32_t h, const char *title);
+void (*draw_footer)(const char *text);
+void (*fill_rect)(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color);
+void (*draw_rect)(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color);
+void (*draw_text)(uint32_t x, uint32_t y, const char *text, uint32_t color);
+void (*draw_text_scaled)(uint32_t x, uint32_t y, const char *text, uint32_t color, uint32_t scale);
+void (*put_pixel)(uint32_t x, uint32_t y, uint32_t color);
+int (*poll_key)(uint8_t *key);
+uint32_t (*ticks_ms)(void);
+```
+
+The sample `CGUI.APP` draws a small animated window from a disk-loaded C
+program:
+
+```sh
+make user-apps
+make install-sample-apps
+make run-persistent
+```
+
+Inside TinyDoomOS:
+
+```text
+RUN CGUI.APP
+```
+
+Press `Esc`, `Enter`, or `Space` to return to `COMMAND`.
 
 ## APIs Available Today
 
@@ -242,8 +284,9 @@ The intended progression is:
 2. `C:\APPS` `.TAP` apps with syscalls and sandbox heaps.
 3. `C:\APPS` raw i386 `.APP` apps with a fixed API table.
 4. C-built `.APP` apps through the tiny SDK.
-5. Disk-loaded ELF-like apps.
-6. Process-like native apps with paging, syscalls, and separate heaps.
+5. Native C GUI apps through the tiny SDK.
+6. Disk-loaded ELF-like apps.
+7. Process-like native apps with paging, syscalls, and separate heaps.
 
 Stage 1 is enough for small experiments: demos, simple games, calculators,
 text viewers, diagnostics, and GUI toolkit tests.

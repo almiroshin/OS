@@ -231,6 +231,67 @@ static void native_api_exit(int code)
     }
 }
 
+static uint32_t native_api_ticks_ms(void)
+{
+    return timer_ticks_ms();
+}
+
+static tinyos_window_t native_api_draw_window(uint32_t w, uint32_t h, const char *title)
+{
+    app_window_t app_window = app_draw_window(w, h, title ? title : "APP");
+    tinyos_window_t window;
+
+    window.x = app_window.x;
+    window.y = app_window.y;
+    window.w = app_window.w;
+    window.h = app_window.h;
+    return window;
+}
+
+static void native_api_draw_footer(const char *text)
+{
+    app_draw_footer(text ? text : "");
+}
+
+static void native_api_fill_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color)
+{
+    framebuffer_fill_rect(x, y, w, h, color);
+}
+
+static void native_api_draw_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color)
+{
+    framebuffer_draw_rect(x, y, w, h, color);
+}
+
+static void native_api_draw_text(uint32_t x, uint32_t y, const char *text, uint32_t color)
+{
+    framebuffer_draw_text(x, y, text ? text : "", color);
+}
+
+static void native_api_draw_text_scaled(uint32_t x, uint32_t y, const char *text, uint32_t color, uint32_t scale)
+{
+    framebuffer_draw_text_scaled(x, y, text ? text : "", color, scale);
+}
+
+static void native_api_put_pixel(uint32_t x, uint32_t y, uint32_t color)
+{
+    framebuffer_put_pixel(x, y, color);
+}
+
+static int native_api_poll_key(uint8_t *key)
+{
+    unsigned char local_key;
+
+    if (!key) {
+        return 0;
+    }
+    if (!app_read_key(&local_key)) {
+        return 0;
+    }
+    *key = local_key;
+    return 1;
+}
+
 static int starts_with(const char *line, const char *prefix)
 {
     return strncmp(line, prefix, strlen(prefix)) == 0;
@@ -411,6 +472,15 @@ static int exec_native(process_t *process)
     api.sleep = native_api_sleep;
     api.list_dir = native_api_list_dir;
     api.exit = native_api_exit;
+    api.ticks_ms = native_api_ticks_ms;
+    api.draw_window = native_api_draw_window;
+    api.draw_footer = native_api_draw_footer;
+    api.fill_rect = native_api_fill_rect;
+    api.draw_rect = native_api_draw_rect;
+    api.draw_text = native_api_draw_text;
+    api.draw_text_scaled = native_api_draw_text_scaled;
+    api.put_pixel = native_api_put_pixel;
+    api.poll_key = native_api_poll_key;
 
     process->state = PROCESS_RUNNING;
     previous = native_current_process;

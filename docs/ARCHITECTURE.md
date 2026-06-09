@@ -121,8 +121,8 @@ heap, and executes commands through the syscall dispatcher.
 The third track is `.APP`, a raw i386 image with an `APP1` header. The build
 can assemble `user_apps/native_hello.S` or compile C apps through
 `include/tinyos_app.h`, `user_apps/tinyos_app_start.S`, and `user_apps/app.ld`.
-The C sample is installed as `C:\APPS\CHELLO.APP`. This is a native loader MVP,
-not a protected user-mode process yet.
+The C samples are installed as `C:\APPS\CHELLO.APP` and `C:\APPS\CGUI.APP`.
+This is a native loader MVP, not a protected user-mode process yet.
 
 The GUI launcher combines built-in apps, embedded boot executables, and dynamic
 disk-installed apps found by scanning `C:\APPS` for non-embedded `.TAP` and
@@ -134,8 +134,9 @@ The future app model should evolve in stages:
 2. `C:\APPS` `.TAP` apps with syscalls and sandbox heaps.
 3. `C:\APPS` raw i386 `.APP` apps with a fixed API table.
 4. C-built `.APP` apps through the tiny SDK.
-5. Disk-loaded ELF-like apps.
-6. Native process-like apps with paging and user mode.
+5. Native C GUI apps through the tiny SDK.
+6. Disk-loaded ELF-like apps.
+7. Native process-like apps with paging and user mode.
 
 ## GUI Shell
 
@@ -214,6 +215,7 @@ Current files include:
 - writable files created from `COMMAND`, for example `C:\TEMP\NOTE.TXT`
 - disk-installed apps such as `C:\APPS\HELLODSK.TAP`
 - C SDK sample app `C:\APPS\CHELLO.APP`
+- C SDK GUI sample app `C:\APPS\CGUI.APP`
 
 The built-in `FILES` app is the first GUI file manager. It uses the same `fs_*`
 API as `COMMAND`: directory listing, folder creation, file deletion, text
@@ -242,6 +244,11 @@ sleep, directory listing, and exit.
 sample app `user_apps/native_c_hello.c` proves that an app can be compiled
 outside the kernel, installed into TinyFS, launched from `COMMAND`, call the API
 table, and return to the OS.
+
+The same ABI now includes the first GUI calls: window drawing, footer text,
+rectangles, text, pixels, uptime ticks, sleep, and key polling. The sample
+`user_apps/native_gui_demo.c` proves that disk-loaded C code can draw a GUI and
+return through the loader.
 
 ## Roadmap
 
@@ -274,6 +281,8 @@ Milestone 3: Developer SDK
 - native C `.APP` ABI header
 - startup stub and linker script for C `.APP` programs
 - sample `CHELLO.APP` disk-installed app
+- GUI/input calls in the native app API
+- sample `CGUI.APP` disk-installed GUI app
 
 Milestone 4: Loadable Apps
 

@@ -33,6 +33,7 @@ FS_PATH ?= C:/
 WAD := assets/doom1.wad
 NATIVE_APP := $(BUILD)/user_apps/native_hello.app
 C_NATIVE_APP := $(BUILD)/user_apps/native_c_hello.app
+GUI_NATIVE_APP := $(BUILD)/user_apps/native_gui_demo.app
 APP_BLOBS_C := $(BUILD)/app_blobs.c
 
 COMMON_CFLAGS := -std=gnu99 -ffreestanding -fno-builtin -fno-stack-protector \
@@ -146,13 +147,23 @@ $(BUILD)/user_apps/native_c_hello.o: user_apps/native_c_hello.c include/tinyos_a
 	@mkdir -p $(dir $@)
 	$(CC) $(APP_CFLAGS) -c $< -o $@
 
+$(BUILD)/user_apps/native_gui_demo.o: user_apps/native_gui_demo.c include/tinyos_app.h
+	@mkdir -p $(dir $@)
+	$(CC) $(APP_CFLAGS) -c $< -o $@
+
 $(BUILD)/user_apps/native_c_hello.elf: $(BUILD)/user_apps/tinyos_app_start.o $(BUILD)/user_apps/native_c_hello.o user_apps/app.ld
 	$(CC) $(APP_LDFLAGS) $< $(BUILD)/user_apps/native_c_hello.o -lgcc -o $@
+
+$(BUILD)/user_apps/native_gui_demo.elf: $(BUILD)/user_apps/tinyos_app_start.o $(BUILD)/user_apps/native_gui_demo.o user_apps/app.ld
+	$(CC) $(APP_LDFLAGS) $< $(BUILD)/user_apps/native_gui_demo.o -lgcc -o $@
 
 $(C_NATIVE_APP): $(BUILD)/user_apps/native_c_hello.elf
 	$(OBJCOPY) -O binary $< $@
 
-user-apps: $(NATIVE_APP) $(C_NATIVE_APP)
+$(GUI_NATIVE_APP): $(BUILD)/user_apps/native_gui_demo.elf
+	$(OBJCOPY) -O binary $< $@
+
+user-apps: $(NATIVE_APP) $(C_NATIVE_APP) $(GUI_NATIVE_APP)
 
 $(APP_BLOBS_C): $(NATIVE_APP)
 	@mkdir -p $(dir $@)
@@ -213,10 +224,11 @@ fs-rm: disk-image
 	@test -n "$(FS_PATH)" || { echo "Usage: make fs-rm FS_PATH=C:/APPS/APP.TAP"; exit 1; }
 	$(PYTHON) tools/tinyfs.py rm $(DISK) "$(FS_PATH)"
 
-install-sample-apps: disk-image $(NATIVE_APP) $(C_NATIVE_APP)
+install-sample-apps: disk-image $(NATIVE_APP) $(C_NATIVE_APP) $(GUI_NATIVE_APP)
 	$(PYTHON) tools/tinyfs.py put $(DISK) user_apps/hello_disk.tap C:/APPS/HELLODSK.TAP
 	$(PYTHON) tools/tinyfs.py put $(DISK) $(NATIVE_APP) C:/APPS/NATIVE2.APP
 	$(PYTHON) tools/tinyfs.py put $(DISK) $(C_NATIVE_APP) C:/APPS/CHELLO.APP
+	$(PYTHON) tools/tinyfs.py put $(DISK) $(GUI_NATIVE_APP) C:/APPS/CGUI.APP
 
 run-persistent: check-tools $(ISO) disk-image
 	$(QEMU) -m 256M -cdrom $(ISO) -drive file=$(DISK),format=raw,if=ide,media=disk -boot d -vga std -serial stdio -no-reboot
