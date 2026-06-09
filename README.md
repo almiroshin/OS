@@ -167,7 +167,9 @@ There are now three app models, with disk installation for loadable files:
 
 Start with:
 
+- `include/tinyos.h`
 - `include/tinyos_app.h`
+- `user_apps/libtinyos.c`
 - `user_apps/native_c_hello.c`
 - `user_apps/native_gui_demo.c`
 - `apps/hello_app.c`
@@ -180,6 +182,8 @@ Start with:
 The `.TAP` loader is intentionally tiny, while `.APP` proves the native binary
 path before we add ELF-style loading, paging, and user mode. Persistent user
 files live in TinyFS on `build/tinydoom.img` when the disk image is attached.
+Any C file added under `user_apps/`, except SDK runtime files, is automatically
+built into `build/user_apps/<name>.app` by `make user-apps`.
 
 ## Architecture
 

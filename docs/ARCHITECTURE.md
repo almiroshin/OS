@@ -120,9 +120,13 @@ heap, and executes commands through the syscall dispatcher.
 
 The third track is `.APP`, a raw i386 image with an `APP1` header. The build
 can assemble `user_apps/native_hello.S` or compile C apps through
-`include/tinyos_app.h`, `user_apps/tinyos_app_start.S`, and `user_apps/app.ld`.
+`include/tinyos.h`, `include/tinyos_app.h`, `user_apps/tinyos_app_start.S`,
+`user_apps/libtinyos.c`, and `user_apps/app.ld`.
 The C samples are installed as `C:\APPS\CHELLO.APP` and `C:\APPS\CGUI.APP`.
 This is a native loader MVP, not a protected user-mode process yet.
+
+`make user-apps` auto-discovers C app sources in `user_apps/*.c`, excluding the
+SDK runtime itself, and emits raw `.APP` binaries under `build/user_apps/`.
 
 The GUI launcher combines built-in apps, embedded boot executables, and dynamic
 disk-installed apps found by scanning `C:\APPS` for non-embedded `.TAP` and
@@ -240,10 +244,11 @@ The `.APP` format starts with:
 The native entry receives a tiny API table for write, memory info, process info,
 sleep, directory listing, and exit.
 
-`include/tinyos_app.h` is the public ABI header for C-built native apps. The
-sample app `user_apps/native_c_hello.c` proves that an app can be compiled
-outside the kernel, installed into TinyFS, launched from `COMMAND`, call the API
-table, and return to the OS.
+`include/tinyos_app.h` is the low-level ABI header for C-built native apps.
+`include/tinyos.h` and `user_apps/libtinyos.c` provide the ergonomic SDK wrapper
+used by normal C apps. The sample app `user_apps/native_c_hello.c` proves that
+an app can be compiled outside the kernel, installed into TinyFS, launched from
+`COMMAND`, call the API table, and return to the OS.
 
 The same ABI now includes the first GUI calls: window drawing, footer text,
 rectangles, text, pixels, uptime ticks, sleep, and key polling. The sample
@@ -279,6 +284,8 @@ Milestone 3: Developer SDK
 - app lifecycle docs
 - build rules for adding built-in apps
 - native C `.APP` ABI header
+- `libtinyos` wrapper runtime
+- auto-discovered `user_apps/*.c` app builds
 - startup stub and linker script for C `.APP` programs
 - sample `CHELLO.APP` disk-installed app
 - GUI/input calls in the native app API

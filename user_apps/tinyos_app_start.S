@@ -11,6 +11,7 @@ app_image_start:
     .long 0
 
 .section .text
+.extern tinyos_bind
 .extern tinyos_main
 
 app_entry:
@@ -20,6 +21,10 @@ app_entry:
     push %ebx
 
     mov 8(%ebp), %esi
+    push %esi
+    call tinyos_bind
+    add $4, %esp
+
     push %esi
     call tinyos_main
     add $4, %esp

@@ -138,8 +138,10 @@ space. Paging and ring 3 are the next step for real native-process isolation.
 
 The current SDK files are:
 
-- `include/tinyos_app.h`: public `.APP` ABI and API table
+- `include/tinyos_app.h`: low-level `.APP` ABI and API table
+- `include/tinyos.h`: ergonomic SDK wrapper API for apps
 - `user_apps/tinyos_app_start.S`: raw `.APP` header and startup stub
+- `user_apps/libtinyos.c`: wrapper runtime linked into C apps
 - `user_apps/app.ld`: linker script for raw position-independent app images
 - `user_apps/native_c_hello.c`: sample C app
 - `user_apps/native_gui_demo.c`: sample C GUI app
@@ -147,17 +149,23 @@ The current SDK files are:
 Minimal app:
 
 ```c
-#include "tinyos_app.h"
+#include "tinyos.h"
 
 int tinyos_main(tinyos_api_t *api)
 {
-    api->write("HELLO FROM C .APP");
-    api->proc_info();
-    api->mem_info();
-    api->list_dir("C:\\APPS");
+    (void)api;
+
+    tinyos_write("HELLO FROM C .APP");
+    tinyos_proc_info();
+    tinyos_mem_info();
+    tinyos_list_dir("C:\\APPS");
     return 0;
 }
 ```
+
+Any app source added as `user_apps/<name>.c` is automatically built into
+`build/user_apps/<name>.app`. The only C runtime file excluded from app
+auto-discovery is `user_apps/libtinyos.c`.
 
 Build and install the sample app:
 
@@ -174,33 +182,27 @@ Inside TinyDoomOS, run:
 RUN CHELLO.APP
 ```
 
-The build uses freestanding i386 PIE code and then strips the linked ELF into a
-raw `.APP` binary. The app must call only the `tinyos_api_t` table for OS
-services. There is no app-side libc ABI yet, and native `.APP` code still runs
+The build uses freestanding i386 PIE code, links `tinyos_app_start.S` and
+`libtinyos.c`, then strips the linked ELF into a raw `.APP` binary. Apps should
+prefer `tinyos.h` wrappers. `tinyos_app.h` remains available for low-level ABI
+work. There is no app-side libc ABI yet, and native `.APP` code still runs
 without hardware memory protection.
 
 ## Native C GUI API
 
-`tinyos_api_t` also exposes the first stable drawing and input calls for
-disk-loaded C apps:
+`tinyos.h` exposes the first stable drawing and input calls for disk-loaded C
+apps:
 
 ```c
-typedef struct {
-    uint32_t x;
-    uint32_t y;
-    uint32_t w;
-    uint32_t h;
-} tinyos_window_t;
-
-tinyos_window_t (*draw_window)(uint32_t w, uint32_t h, const char *title);
-void (*draw_footer)(const char *text);
-void (*fill_rect)(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color);
-void (*draw_rect)(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color);
-void (*draw_text)(uint32_t x, uint32_t y, const char *text, uint32_t color);
-void (*draw_text_scaled)(uint32_t x, uint32_t y, const char *text, uint32_t color, uint32_t scale);
-void (*put_pixel)(uint32_t x, uint32_t y, uint32_t color);
-int (*poll_key)(uint8_t *key);
-uint32_t (*ticks_ms)(void);
+tinyos_window_t tinyos_draw_window(uint32_t w, uint32_t h, const char *title);
+void tinyos_draw_footer(const char *text);
+void tinyos_fill_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color);
+void tinyos_draw_rect(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32_t color);
+void tinyos_draw_text(uint32_t x, uint32_t y, const char *text, uint32_t color);
+void tinyos_draw_text_scaled(uint32_t x, uint32_t y, const char *text, uint32_t color, uint32_t scale);
+void tinyos_put_pixel(uint32_t x, uint32_t y, uint32_t color);
+int tinyos_poll_key(uint8_t *key);
+uint32_t tinyos_ticks_ms(void);
 ```
 
 The sample `CGUI.APP` draws a small animated window from a disk-loaded C
@@ -231,8 +233,9 @@ Apps may include the same low-level headers used by the shell:
 - `timer.h` for sleeping and ticks
 - `fs.h`, `memory.h`, `process.h`, and `syscall.h` for kernel/runtime work
 
-This is not a stable ABI yet. The next step is to wrap these into a smaller
-public app API before adding native loadable apps.
+These kernel headers are not the stable loadable-app ABI. Disk-loaded C apps
+should use `tinyos.h`; built-in apps may still use the internal kernel/app
+headers directly.
 
 `printf`, `puts`, and `putchar` write to the serial log, not to the graphical
 framebuffer. Apps should draw UI explicitly through framebuffer or future GUI
@@ -285,8 +288,9 @@ The intended progression is:
 3. `C:\APPS` raw i386 `.APP` apps with a fixed API table.
 4. C-built `.APP` apps through the tiny SDK.
 5. Native C GUI apps through the tiny SDK.
-6. Disk-loaded ELF-like apps.
-7. Process-like native apps with paging, syscalls, and separate heaps.
+6. Auto-discovered `user_apps/*.c` builds.
+7. Disk-loaded ELF-like apps.
+8. Process-like native apps with paging, syscalls, and separate heaps.
 
 Stage 1 is enough for small experiments: demos, simple games, calculators,
 text viewers, diagnostics, and GUI toolkit tests.

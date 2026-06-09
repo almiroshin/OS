@@ -1,12 +1,14 @@
-#include "tinyos_app.h"
+#include "tinyos.h"
 
 int tinyos_main(tinyos_api_t *api)
 {
-    api->write("HELLO FROM C .APP");
-    api->write("THIS PROGRAM WAS BUILT FROM C");
-    api->proc_info();
-    api->mem_info();
-    api->list_dir("C:\\APPS");
-    api->write("C APP RETURNING TO LOADER");
+    (void)api;
+
+    tinyos_write("HELLO FROM C .APP");
+    tinyos_write("THIS PROGRAM WAS BUILT WITH LIBTINYOS");
+    tinyos_proc_info();
+    tinyos_mem_info();
+    tinyos_list_dir("C:\\APPS");
+    tinyos_write("C APP RETURNING TO LOADER");
     return 0;
 }

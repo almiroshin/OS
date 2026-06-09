@@ -32,8 +32,14 @@ DISK := $(BUILD)/tinydoom.img
 FS_PATH ?= C:/
 WAD := assets/doom1.wad
 NATIVE_APP := $(BUILD)/user_apps/native_hello.app
+C_APP_SRC := $(filter-out user_apps/libtinyos.c,$(wildcard user_apps/*.c))
+C_APP_NAMES := $(basename $(notdir $(C_APP_SRC)))
+C_APP_OBJECTS := $(addprefix $(BUILD)/user_apps/,$(addsuffix .o,$(C_APP_NAMES)))
+C_APP_ELFS := $(addprefix $(BUILD)/user_apps/,$(addsuffix .elf,$(C_APP_NAMES)))
+C_APP_BINARIES := $(addprefix $(BUILD)/user_apps/,$(addsuffix .app,$(C_APP_NAMES)))
 C_NATIVE_APP := $(BUILD)/user_apps/native_c_hello.app
 GUI_NATIVE_APP := $(BUILD)/user_apps/native_gui_demo.app
+APP_RUNTIME_OBJS := $(BUILD)/user_apps/tinyos_app_start.o $(BUILD)/user_apps/libtinyos.o
 APP_BLOBS_C := $(BUILD)/app_blobs.c
 
 COMMON_CFLAGS := -std=gnu99 -ffreestanding -fno-builtin -fno-stack-protector \
@@ -112,6 +118,7 @@ OBJS := $(patsubst %.c,$(BUILD)/%.o,$(filter %.c,$(KERNEL_SRC) $(APP_SRC) $(DOOM
 	$(BUILD)/app_blobs.o
 
 .PHONY: all clean run run-persistent disk-image fs-format fs-ls fs-put fs-get fs-mkdir fs-rm install-sample-apps user-apps check-tools fetch-wad
+.SECONDARY: $(APP_RUNTIME_OBJS) $(C_APP_OBJECTS) $(C_APP_ELFS)
 
 all: check-tools $(ISO) user-apps
 
@@ -143,27 +150,17 @@ $(BUILD)/user_apps/tinyos_app_start.o: user_apps/tinyos_app_start.S include/tiny
 	@mkdir -p $(dir $@)
 	$(CC) $(APP_CFLAGS) -c $< -o $@
 
-$(BUILD)/user_apps/native_c_hello.o: user_apps/native_c_hello.c include/tinyos_app.h
+$(BUILD)/user_apps/%.o: user_apps/%.c include/tinyos_app.h include/tinyos.h
 	@mkdir -p $(dir $@)
 	$(CC) $(APP_CFLAGS) -c $< -o $@
 
-$(BUILD)/user_apps/native_gui_demo.o: user_apps/native_gui_demo.c include/tinyos_app.h
-	@mkdir -p $(dir $@)
-	$(CC) $(APP_CFLAGS) -c $< -o $@
+$(BUILD)/user_apps/%.elf: $(APP_RUNTIME_OBJS) $(BUILD)/user_apps/%.o user_apps/app.ld
+	$(CC) $(APP_LDFLAGS) $(APP_RUNTIME_OBJS) $(BUILD)/user_apps/$*.o -lgcc -o $@
 
-$(BUILD)/user_apps/native_c_hello.elf: $(BUILD)/user_apps/tinyos_app_start.o $(BUILD)/user_apps/native_c_hello.o user_apps/app.ld
-	$(CC) $(APP_LDFLAGS) $< $(BUILD)/user_apps/native_c_hello.o -lgcc -o $@
-
-$(BUILD)/user_apps/native_gui_demo.elf: $(BUILD)/user_apps/tinyos_app_start.o $(BUILD)/user_apps/native_gui_demo.o user_apps/app.ld
-	$(CC) $(APP_LDFLAGS) $< $(BUILD)/user_apps/native_gui_demo.o -lgcc -o $@
-
-$(C_NATIVE_APP): $(BUILD)/user_apps/native_c_hello.elf
+$(BUILD)/user_apps/%.app: $(BUILD)/user_apps/%.elf
 	$(OBJCOPY) -O binary $< $@
 
-$(GUI_NATIVE_APP): $(BUILD)/user_apps/native_gui_demo.elf
-	$(OBJCOPY) -O binary $< $@
-
-user-apps: $(NATIVE_APP) $(C_NATIVE_APP) $(GUI_NATIVE_APP)
+user-apps: $(NATIVE_APP) $(C_APP_BINARIES)
 
 $(APP_BLOBS_C): $(NATIVE_APP)
 	@mkdir -p $(dir $@)
